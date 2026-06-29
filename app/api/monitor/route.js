@@ -1,10 +1,17 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import twilio from 'twilio';
 
-// Inicializar cliente de Supabase con las variables de entorno
+// Inicializar cliente de Supabase
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Inicializar cliente de Twilio
+const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+const twilioFrom = `whatsapp:${process.env.TWILIO_WHATSAPP_FROM}`;
+// Soportar múltiples números separados por coma
+const whatsappToList = process.env.WHATSAPP_TO ? process.env.WHATSAPP_TO.split(',') : [];
 
 export async function GET(request) {
   try {
@@ -25,7 +32,7 @@ export async function GET(request) {
     const query = new URLSearchParams({
       '$where': where,
       '$order': 'fecha_de_publicacion_del DESC',
-      '$limit': '5' // Procesaremos de a 5 para no saturar pruebas
+      '$limit': '3' // Traer las 3 más recientes
     });
 
     const url = `https://www.datos.gov.co/resource/p6dx-8zbt.json?${query.toString()}`;
@@ -40,37 +47,57 @@ export async function GET(request) {
     for (const lic of licitaciones) {
       const id = lic.id_del_proceso;
       
-      // Consultar si este ID ya existe en nuestra tabla
       const { data, error } = await supabase
         .from('licitaciones_notificadas')
         .select('secop_id')
         .eq('secop_id', id)
-        .single(); // Intenta traer 1 solo registro
+        .single();
 
-      // Si no hay datos (la query no encontró el ID), entonces es NUEVA
       if (!data) {
         nuevasLicitaciones.push(lic);
         
-        // Inmediatamente la guardamos en BD para que en la próxima ejecución ya figure como "notificada"
         await supabase
           .from('licitaciones_notificadas')
           .insert([{ secop_id: id }]);
       }
     }
 
-    // 3. (PRÓXIMO PASO) Enviar alertas por Twilio
-    // Aquí agregaremos luego el código para enviar el WhatsApp por cada licitación en "nuevasLicitaciones"
+    // 3. Enviar alertas por Twilio WhatsApp
+    let mensajesEnviados = 0;
+    
+    for (const lic of nuevasLicitaciones) {
+      const presupuesto = parseInt(lic.precio_base || 0).toLocaleString('es-CO');
+      const link = lic.urlproceso ? lic.urlproceso.url : 'No disponible';
+      
+      // Armar el mensaje formateado
+      const mensaje = `🎯 *NUEVA LICITACIÓN SECOP II*\n\n` +
+                      `📋 *Entidad:* ${lic.entidad}\n` +
+                      `📍 *Ubicación:* ${lic.departamento_entidad}\n` +
+                      `💰 *Presupuesto:* $${presupuesto} COP\n\n` +
+                      `📝 *Descripción:* ${lic.descripci_n_del_procedimiento}\n\n` +
+                      `🔗 *Enlace:* ${link}`;
+
+      // Enviar a cada número configurado
+      for (const numeroDestino of whatsappToList) {
+        try {
+          await twilioClient.messages.create({
+            body: mensaje,
+            from: twilioFrom,
+            to: `whatsapp:${numeroDestino.trim()}`
+          });
+          mensajesEnviados++;
+        } catch (twError) {
+          console.error(`Error enviando a ${numeroDestino}:`, twError.message);
+        }
+      }
+    }
 
     return NextResponse.json({
       success: true,
-      mensaje: 'Monitoreo ejecutado correctamente',
+      mensaje: 'Monitoreo y notificaciones ejecutados',
       totalEncontradasSocrata: licitaciones.length,
       totalNuevas: nuevasLicitaciones.length,
-      nuevas: nuevasLicitaciones.map(l => ({
-        id: l.id_del_proceso,
-        entidad: l.entidad,
-        presupuesto: l.precio_base
-      }))
+      mensajesWhatsAppEnviados: mensajesEnviados
     });
 
   } catch (error) {
