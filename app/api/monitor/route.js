@@ -21,14 +21,17 @@ export async function GET(request) {
     const hoy = new Date();
     hoy.setDate(hoy.getDate() - 30);
     const fechaMin = hoy.toISOString().split('T')[0] + 'T00:00:00.000';
-    
+
     const where = `fecha_de_publicacion_del >= '${fechaMin}' AND (` +
-                  `upper(descripci_n_del_procedimiento) like '%EVENTO%' OR ` +
-                  `upper(descripci_n_del_procedimiento) like '%LOGISTICA%' OR ` +
-                  `upper(descripci_n_del_procedimiento) like '%LOGÍSTICA%' OR ` +
-                  `upper(descripci_n_del_procedimiento) like '%TARIMA%' OR ` +
-                  `upper(descripci_n_del_procedimiento) like '%CARPA%')`;
-                  
+      `upper(descripci_n_del_procedimiento) like '%EVENTO%' OR ` +
+      `upper(descripci_n_del_procedimiento) like '%LOGISTICA%' OR ` +
+      `upper(descripci_n_del_procedimiento) like '%LOGÍSTICA%' OR ` +
+      `upper(descripci_n_del_procedimiento) like '%TARIMA%' OR ` +
+      `upper(descripci_n_del_procedimiento) like '%SILLAS%' OR ` +
+      `upper(descripci_n_del_procedimiento) like '%SONIDO%' OR ` +
+      `upper(descripci_n_del_procedimiento) like '%PANTALLA%' OR ` +
+      `upper(descripci_n_del_procedimiento) like '%CARPA%')`;
+
     const query = new URLSearchParams({
       '$where': where,
       '$order': 'fecha_de_publicacion_del DESC',
@@ -37,16 +40,16 @@ export async function GET(request) {
 
     const url = `https://www.datos.gov.co/resource/p6dx-8zbt.json?${query.toString()}`;
     const response = await fetch(url);
-    
+
     if (!response.ok) throw new Error('Error al consultar Socrata');
     const licitaciones = await response.json();
-    
+
     let nuevasLicitaciones = [];
 
     // 2. Filtrar las que ya existen en Supabase (Deduplicación)
     for (const lic of licitaciones) {
       const id = lic.id_del_proceso;
-      
+
       const { data, error } = await supabase
         .from('licitaciones_notificadas')
         .select('secop_id')
@@ -55,7 +58,7 @@ export async function GET(request) {
 
       if (!data) {
         nuevasLicitaciones.push(lic);
-        
+
         await supabase
           .from('licitaciones_notificadas')
           .insert([{ secop_id: id }]);
@@ -64,18 +67,18 @@ export async function GET(request) {
 
     // 3. Enviar alertas por Twilio WhatsApp
     let mensajesEnviados = 0;
-    
+
     for (const lic of nuevasLicitaciones) {
       const presupuesto = parseInt(lic.precio_base || 0).toLocaleString('es-CO');
       const link = lic.urlproceso ? lic.urlproceso.url : 'No disponible';
-      
+
       // Armar el mensaje formateado
       const mensaje = `🎯 *NUEVA LICITACIÓN SECOP II*\n\n` +
-                      `📋 *Entidad:* ${lic.entidad}\n` +
-                      `📍 *Ubicación:* ${lic.departamento_entidad}\n` +
-                      `💰 *Presupuesto:* $${presupuesto} COP\n\n` +
-                      `📝 *Descripción:* ${lic.descripci_n_del_procedimiento}\n\n` +
-                      `🔗 *Enlace:* ${link}`;
+        `📋 *Entidad:* ${lic.entidad}\n` +
+        `📍 *Ubicación:* ${lic.departamento_entidad}\n` +
+        `💰 *Presupuesto:* $${presupuesto} COP\n\n` +
+        `📝 *Descripción:* ${lic.descripci_n_del_procedimiento}\n\n` +
+        `🔗 *Enlace:* ${link}`;
 
       // Enviar a cada número configurado
       for (const numeroDestino of whatsappToList) {
