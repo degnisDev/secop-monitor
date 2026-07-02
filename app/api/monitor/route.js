@@ -37,7 +37,7 @@ export async function GET(request) {
     const query = new URLSearchParams({
       '$where': where,
       '$order': 'fecha_de_publicacion_del DESC',
-      '$limit': '50' // Traer varias para evitar que Socrata devuelva siempre la misma que ya te notificó
+      '$limit': '150' // Subimos el límite porque los primeros 50 se marcaron como notificados accidentalmente
     });
 
     const url = `https://www.datos.gov.co/resource/p6dx-8zbt.json?${query.toString()}`;
@@ -60,10 +60,7 @@ export async function GET(request) {
 
       if (!data) {
         nuevasLicitaciones.push(lic);
-
-        await supabase
-          .from('licitaciones_notificadas')
-          .insert([{ secop_id: id }]);
+        // Ya NO guardamos en la base de datos aquí. Lo haremos SOLO cuando se envíe el WhatsApp.
       }
     }
 
@@ -95,6 +92,11 @@ export async function GET(request) {
             to: `whatsapp:${numeroDestino.trim()}`
           });
           mensajesEnviados++;
+          
+          // Marcar como notificada en la BD SOLO si se envió el mensaje
+          await supabase
+            .from('licitaciones_notificadas')
+            .insert([{ secop_id: lic.id_del_proceso }]);
         } catch (twError) {
           console.error(`Error enviando a ${numeroDestino}:`, twError.message);
         }
