@@ -37,7 +37,7 @@ export async function GET(request) {
     const query = new URLSearchParams({
       '$where': where,
       '$order': 'fecha_de_publicacion_del DESC',
-      '$limit': '150' // Subimos el límite porque los primeros 50 se marcaron como notificados accidentalmente
+      '$limit': '50' // Bajamos de nuevo el límite a 50
     });
 
     const url = `https://www.datos.gov.co/resource/p6dx-8zbt.json?${query.toString()}`;
@@ -92,7 +92,7 @@ export async function GET(request) {
             to: `whatsapp:${numeroDestino.trim()}`
           });
           mensajesEnviados++;
-          
+
           // Marcar como notificada en la BD SOLO si se envió el mensaje
           await supabase
             .from('licitaciones_notificadas')
