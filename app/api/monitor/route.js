@@ -37,7 +37,7 @@ export async function GET(request) {
     const query = new URLSearchParams({
       '$where': where,
       '$order': 'fecha_de_publicacion_del DESC',
-      '$limit': '1' // Límite estricto de 1 para la demostración
+      '$limit': '50' // Traer varias para evitar que Socrata devuelva siempre la misma que ya te notificó
     });
 
     const url = `https://www.datos.gov.co/resource/p6dx-8zbt.json?${query.toString()}`;
@@ -70,7 +70,10 @@ export async function GET(request) {
     // 3. Enviar alertas por Twilio WhatsApp
     let mensajesEnviados = 0;
 
-    for (const lic of nuevasLicitaciones) {
+    // LÍMITE DE DEMOSTRACIÓN: Enviar máximo 1 mensaje de la lista de nuevas
+    const licitacionesAEnviar = nuevasLicitaciones.slice(0, 1);
+
+    for (const lic of licitacionesAEnviar) {
       const presupuesto = parseInt(lic.precio_base || 0).toLocaleString('es-CO');
       const link = lic.urlproceso ? lic.urlproceso.url : 'No disponible';
 
