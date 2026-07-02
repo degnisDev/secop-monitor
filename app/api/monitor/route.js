@@ -36,7 +36,8 @@ export async function GET(request) {
 
     const query = new URLSearchParams({
       '$where': where,
-      '$order': 'fecha_de_publicacion_del DESC'
+      '$order': 'fecha_de_publicacion_del DESC',
+      '$limit': '1' // Límite estricto de 1 para la demostración
     });
 
     const url = `https://www.datos.gov.co/resource/p6dx-8zbt.json?${query.toString()}`;
