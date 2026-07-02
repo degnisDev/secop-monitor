@@ -24,6 +24,8 @@ export async function GET(request) {
 
     const where = `fecha_de_publicacion_del >= '${fechaMin}' AND (` +
       `upper(descripci_n_del_procedimiento) like '%EVENTO%' OR ` +
+      `upper(descripci_n_del_procedimiento) like '%PRESTACION%' OR ` +
+      `upper(descripci_n_del_procedimiento) like '%PRESTACIÓN%' OR ` +
       `upper(descripci_n_del_procedimiento) like '%LOGISTICA%' OR ` +
       `upper(descripci_n_del_procedimiento) like '%LOGÍSTICA%' OR ` +
       `upper(descripci_n_del_procedimiento) like '%TARIMA%' OR ` +
@@ -34,8 +36,7 @@ export async function GET(request) {
 
     const query = new URLSearchParams({
       '$where': where,
-      '$order': 'fecha_de_publicacion_del DESC',
-      '$limit': '3' // Traer las 3 más recientes
+      '$order': 'fecha_de_publicacion_del DESC'
     });
 
     const url = `https://www.datos.gov.co/resource/p6dx-8zbt.json?${query.toString()}`;
@@ -74,6 +75,7 @@ export async function GET(request) {
 
       // Armar el mensaje formateado
       const mensaje = `🎯 *NUEVA LICITACIÓN SECOP II*\n\n` +
+        `🆔 *Proceso ID:* ${lic.id_del_proceso}\n` +
         `📋 *Entidad:* ${lic.entidad}\n` +
         `📍 *Ubicación:* ${lic.departamento_entidad}\n` +
         `💰 *Presupuesto:* $${presupuesto} COP\n\n` +
