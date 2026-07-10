@@ -64,8 +64,17 @@ export async function GET(request) {
 
     let nuevasLicitaciones = [];
 
-    // 2. Filtrar las que ya existen en Supabase (Deduplicación)
+    // 2. Filtrar las que ya existen en Supabase (Deduplicación) y validar palabras completas (evita falsos positivos como Policarpa)
+    const regexEstricto = /(?:^|[^a-záéíóúüñ])(carpa|carpas|tarima|tarimas|mobiliario|mobiliarios|andamio|andamios|arquitectura efímera|arquitectura efimera|evento|eventos|logistica|logística|logísticas|alquiler|alquileres|suministro|suministros|montaje|montajes|sonido|sonidos|pantalla|pantallas|silla|sillas|mesa|mesas|iluminación|iluminacion|luces)(?:$|[^a-záéíóúüñ])/i;
+
     for (const lic of licitaciones) {
+      const descripcion = lic.descripci_n_del_procedimiento || '';
+      
+      // Si la descripción no contiene las palabras clave como palabras completas, la omitimos
+      if (!regexEstricto.test(descripcion)) {
+        continue;
+      }
+
       const id = lic.id_del_proceso;
 
       const { data, error } = await supabase
