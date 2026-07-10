@@ -36,19 +36,19 @@ export async function GET(request) {
       `upper(descripci_n_del_procedimiento) like '%ANDAMIO%' OR ` +
       `upper(descripci_n_del_procedimiento) like '%ARQUITECTURA EFÍMERA%' OR ` +
       `((upper(descripci_n_del_procedimiento) like '%EVENTO%' OR ` +
-        `upper(descripci_n_del_procedimiento) like '%LOGISTICA%' OR ` +
-        `upper(descripci_n_del_procedimiento) like '%LOGÍSTICA%') AND (` +
-        `upper(descripci_n_del_procedimiento) like '%ALQUILER%' OR ` +
-        `upper(descripci_n_del_procedimiento) like '%SUMINISTRO%' OR ` +
-        `upper(descripci_n_del_procedimiento) like '%MONTAJE%' OR ` +
-        `upper(descripci_n_del_procedimiento) like '%SONIDO%' OR ` +
-        `upper(descripci_n_del_procedimiento) like '%PANTALLA%' OR ` +
-        `upper(descripci_n_del_procedimiento) like '%SILLA%' OR ` +
-        `upper(descripci_n_del_procedimiento) like '%MESA%' OR ` +
-        `upper(descripci_n_del_procedimiento) like '%ILUMINACI%' OR ` +
-        `upper(descripci_n_del_procedimiento) like '%LUCES%'` +
+      `upper(descripci_n_del_procedimiento) like '%LOGISTICA%' OR ` +
+      `upper(descripci_n_del_procedimiento) like '%LOGÍSTICA%') AND (` +
+      `upper(descripci_n_del_procedimiento) like '%ALQUILER%' OR ` +
+      `upper(descripci_n_del_procedimiento) like '%SUMINISTRO%' OR ` +
+      `upper(descripci_n_del_procedimiento) like '%MONTAJE%' OR ` +
+      `upper(descripci_n_del_procedimiento) like '%SONIDO%' OR ` +
+      `upper(descripci_n_del_procedimiento) like '%PANTALLA%' OR ` +
+      `upper(descripci_n_del_procedimiento) like '%SILLA%' OR ` +
+      `upper(descripci_n_del_procedimiento) like '%MESA%' OR ` +
+      `upper(descripci_n_del_procedimiento) like '%ILUMINACI%' OR ` +
+      `upper(descripci_n_del_procedimiento) like '%LUCES%'` +
       `))` +
-    `)`;
+      `)`;
 
     const query = new URLSearchParams({
       '$where': where,
@@ -69,7 +69,7 @@ export async function GET(request) {
 
     for (const lic of licitaciones) {
       const descripcion = lic.descripci_n_del_procedimiento || '';
-      
+
       // Si la descripción no contiene las palabras clave como palabras completas, la omitimos
       if (!regexEstricto.test(descripcion)) {
         continue;
