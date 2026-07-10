@@ -31,8 +31,6 @@ export async function GET(request) {
 
     const where = `fecha_de_publicacion_del >= '${fechaMin}' AND (` +
       `upper(descripci_n_del_procedimiento) like '%EVENTO%' OR ` +
-      `upper(descripci_n_del_procedimiento) like '%PRESTACION%' OR ` +
-      `upper(descripci_n_del_procedimiento) like '%PRESTACIÓN%' OR ` +
       `upper(descripci_n_del_procedimiento) like '%LOGISTICA%' OR ` +
       `upper(descripci_n_del_procedimiento) like '%LOGÍSTICA%' OR ` +
       `upper(descripci_n_del_procedimiento) like '%TARIMA%' OR ` +
@@ -82,9 +80,29 @@ export async function GET(request) {
       const presupuesto = parseInt(lic.precio_base || 0).toLocaleString('es-CO');
       const link = lic.urlproceso ? lic.urlproceso.url : 'No disponible';
 
+      // Formatear fecha de publicación
+      const fechaOriginal = lic.fecha_de_publicacion_del;
+      let fechaFormateada = 'No disponible';
+      if (fechaOriginal) {
+        try {
+          const fechaObj = new Date(fechaOriginal);
+          fechaFormateada = fechaObj.toLocaleDateString('es-CO', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+          });
+        } catch (e) {
+          fechaFormateada = fechaOriginal;
+        }
+      }
+
       // Armar el mensaje formateado
       const mensaje = `🎯 *NUEVA LICITACIÓN SECOP II*\n\n` +
         `🆔 *Proceso ID:* ${lic.id_del_proceso}\n` +
+        `📅 *Fecha de publicación:* ${fechaFormateada}\n` +
         `📋 *Entidad:* ${lic.entidad}\n` +
         `📍 *Ubicación:* ${lic.departamento_entidad}\n` +
         `💰 *Presupuesto:* $${presupuesto} COP\n\n` +
