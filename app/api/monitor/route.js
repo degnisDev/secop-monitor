@@ -65,21 +65,29 @@ export async function GET(request) {
     let nuevasLicitaciones = [];
 
     // 2. Filtrar las que ya existen en Supabase (Deduplicación) y validar palabras completas (evita falsos positivos como Policarpa)
-    const regexEstricto = /(?:^|[^a-záéíóúüñ])(carpa|carpas|tarima|tarimas|mobiliario|mobiliarios|andamio|andamios|arquitectura efímera|arquitectura efimera|evento|eventos|logistica|logística|logísticas|alquiler|alquileres|suministro|suministros|montaje|montajes|sonido|sonidos|pantalla|pantallas|silla|sillas|mesa|mesas|iluminación|iluminacion|luces)(?:$|[^a-záéíóúüñ])/i;
 
-    // Lista negra: Descartar arriendos de bienes raíces (inmuebles, oficinas, sedes, lotes, bodegas) o vehículos
-    const regexListaNegra = /(?:^|[^a-záéíóúüñ])(inmueble|inmuebles|oficina|oficinas|sede|sedes|lote|lotes|bodega|bodegas|vehículo|vehículos|vehicular|predio|predios)(?:$|[^a-záéíóúüñ])/i;
+    // Grupo A: Productos de infraestructura directa de Multiespacios (siempre relevantes)
+    const regexProductoDirecto = /(?:^|[^a-záéíóúüñ])(carpa|carpas|tarima|tarimas|andamio|andamios|arquitectura efímera|arquitectura efimera|sonido|sonidos|pantalla|pantallas|silla|sillas|iluminación|iluminacion|luces|truss)(?:$|[^a-záéíóúüñ])/i;
+
+    // Grupo B: Palabras genéricas que necesitan contexto (mobiliario, evento, logística, alquiler, montaje, mesa)
+    const regexGenerico = /(?:^|[^a-záéíóúüñ])(mobiliario|mobiliarios|evento|eventos|logistica|logística|logísticas|alquiler|alquileres|suministro|suministros|montaje|montajes|mesa|mesas)(?:$|[^a-záéíóúüñ])/i;
+
+    // Lista negra: Solo se aplica cuando el match fue por palabras genéricas (Grupo B)
+    const regexListaNegra = /(?:^|[^a-záéíóúüñ])(inmueble|inmuebles|oficina|oficinas|sede|sedes|lote|lotes|bodega|bodegas|vehículo|vehículos|vehicular|predio|predios|arrendamiento|arrienda)(?:$|[^a-záéíóúüñ])/i;
 
     for (const lic of licitaciones) {
       const descripcion = lic.descripci_n_del_procedimiento || '';
 
-      // Si la descripción no contiene las palabras clave como palabras completas, la omitimos
-      if (!regexEstricto.test(descripcion)) {
+      const tieneProductoDirecto = regexProductoDirecto.test(descripcion);
+      const tieneGenerico = regexGenerico.test(descripcion);
+
+      // Si no tiene ni productos directos ni genéricos, la omitimos
+      if (!tieneProductoDirecto && !tieneGenerico) {
         continue;
       }
 
-      // Si la descripción contiene términos de la lista negra, la omitimos
-      if (regexListaNegra.test(descripcion)) {
+      // Si solo matcheó por genéricos (sin productos directos), aplicamos la lista negra
+      if (!tieneProductoDirecto && tieneGenerico && regexListaNegra.test(descripcion)) {
         continue;
       }
 
